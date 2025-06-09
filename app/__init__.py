@@ -1,3 +1,9 @@
+"""
+Radiant Graph API Service
+"""
+
+__version__ = "0.1.0"
+
 from .database import Base, engine, get_db
 
 # Create database tables
