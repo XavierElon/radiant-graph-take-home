@@ -6,6 +6,10 @@
 
 - python3
 - git
+- venv
+- docker
+- tilt
+- postgres
 
 ## Quick Start
 

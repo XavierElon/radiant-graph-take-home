@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, extract
 from . import models, schemas
 from datetime import datetime, time
+from typing import List
 
 def get_customer(db: Session, customer_id: int):
     return db.query(models.Customer).filter(models.Customer.id == customer_id).first()
@@ -74,13 +75,30 @@ def get_customer_orders(db: Session, customer_id: int, skip: int = 0, limit: int
         models.Order.customer_id == customer_id
     ).offset(skip).limit(limit).all()
 
-def get_orders_by_email_or_phone(db: Session, query: str, skip: int = 0, limit: int = 100):
-    return db.query(models.Order).join(models.Customer).filter(
-        or_(
-            models.Customer.email.ilike(f"%{query}%"),
-            models.Customer.telephone.ilike(f"%{query}%")
+def search_orders(db: Session, query: str, skip: int = 0, limit: int = 100) -> List[models.Order]:
+    """Search orders by customer email or phone number."""
+    # Remove any leading/trailing whitespace and ensure the query is not empty
+    query = query.strip()
+    if not query:
+        return []
+
+    # Format the search pattern
+    search_pattern = f"%{query}%"
+
+    # Query orders with customer information
+    return (
+        db.query(models.Order)
+        .join(models.Customer)
+        .filter(
+            or_(
+                models.Customer.email.ilike(search_pattern),
+                models.Customer.telephone.ilike(search_pattern)
+            )
         )
-    ).offset(skip).limit(limit).all()
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 def get_orders_by_zip_code(db: Session, address_type: str = "billing", order_by: str = "desc"):
     """

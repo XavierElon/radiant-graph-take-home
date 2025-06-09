@@ -49,7 +49,7 @@ def search_orders(
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
-    return crud.get_orders_by_email_or_phone(db=db, query=query, skip=skip, limit=limit)
+    return crud.search_orders(db=db, query=query, skip=skip, limit=limit)
 
 @router.get("/{order_id}", response_model=schemas.Order)
 def read_order(order_id: int, db: Session = Depends(get_db)):

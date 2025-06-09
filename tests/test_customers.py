@@ -1,51 +1,32 @@
 import pytest
 from fastapi import status
+from .mock_data import BASE_CUSTOMER, BASE_ADDRESS, get_test_customers, get_test_addresses
 
 def test_create_customer(client):
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Customer creation response: {response.status_code} - {response.json()}")  # Debug log
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["email"] == customer_data["email"]
-    assert data["telephone"] == customer_data["telephone"]
-    assert data["first_name"] == customer_data["first_name"]
-    assert data["last_name"] == customer_data["last_name"]
+    assert data["email"] == BASE_CUSTOMER["email"]
+    assert data["telephone"] == BASE_CUSTOMER["telephone"]
+    assert data["first_name"] == BASE_CUSTOMER["first_name"]
+    assert data["last_name"] == BASE_CUSTOMER["last_name"]
     assert "id" in data
 
 def test_create_duplicate_customer(client):
     # Create first customer
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"First customer creation response: {response.status_code} - {response.json()}")  # Debug log
     
     # Try to create duplicate customer
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Duplicate customer creation response: {response.status_code} - {response.json()}")  # Debug log
     assert response.status_code == status.HTTP_400_BAD_REQUEST
     assert "Email already registered" in response.json()["detail"]
 
 def test_get_customers(client):
     # Create test customers
-    customers = [
-        {
-            "email": f"test{i}@example.com",
-            "telephone": f"+1123456789{i}",  # 10 digits after +1
-            "first_name": f"John{i}",
-            "last_name": f"Doe{i}"
-        }
-        for i in range(3)
-    ]
+    customers = get_test_customers(3)
     
     for customer in customers:
         response = client.post("/customers/", json=customer)
@@ -59,13 +40,7 @@ def test_get_customers(client):
 
 def test_get_customer_by_id(client):
     # Create a customer
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Customer creation response: {response.status_code} - {response.json()}")  # Debug log
     customer_id = response.json()["id"]
     
@@ -73,7 +48,7 @@ def test_get_customer_by_id(client):
     response = client.get(f"/customers/{customer_id}")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["email"] == customer_data["email"]
+    assert data["email"] == BASE_CUSTOMER["email"]
     assert data["id"] == customer_id
 
 def test_get_nonexistent_customer(client):
@@ -83,58 +58,26 @@ def test_get_nonexistent_customer(client):
 
 def test_create_customer_address(client):
     # Create a customer first
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Customer creation response: {response.status_code} - {response.json()}")  # Debug log
     customer_id = response.json()["id"]
     
     # Create address for customer
-    address_data = {
-        "street_address": "123 Test St",
-        "apartment_suite": None,
-        "city": "Test City",
-        "state": "TS",
-        "zip_code": "12345",
-        "is_billing_address": False,
-        "is_shipping_address": True
-    }
-    response = client.post(f"/customers/{customer_id}/addresses/", json=address_data)
+    response = client.post(f"/customers/{customer_id}/addresses/", json=BASE_ADDRESS)
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert data["street_address"] == address_data["street_address"]
-    assert data["city"] == address_data["city"]
+    assert data["street_address"] == BASE_ADDRESS["street_address"]
+    assert data["city"] == BASE_ADDRESS["city"]
     assert "id" in data
 
 def test_get_customer_addresses(client):
     # Create a customer
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Customer creation response: {response.status_code} - {response.json()}")  # Debug log
     customer_id = response.json()["id"]
     
     # Create two addresses
-    addresses = [
-        {
-            "street_address": f"123 Test St {i}",
-            "apartment_suite": None,
-            "city": "Test City",
-            "state": "TS",
-            "zip_code": "12345",
-            "is_billing_address": False,
-            "is_shipping_address": True
-        }
-        for i in range(2)
-    ]
+    addresses = get_test_addresses(2)
     
     for address in addresses:
         client.post(f"/customers/{customer_id}/addresses/", json=address)
@@ -147,15 +90,7 @@ def test_get_customer_addresses(client):
 
 def test_search_customers(client):
     # Create test customers
-    customers = [
-        {
-            "email": f"test{i}@example.com",
-            "telephone": f"+1123456789{i}",  # 10 digits after +1
-            "first_name": f"John{i}",
-            "last_name": f"Doe{i}"
-        }
-        for i in range(3)
-    ]
+    customers = get_test_customers(3)
     
     for customer in customers:
         response = client.post("/customers/", json=customer)

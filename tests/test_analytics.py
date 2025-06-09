@@ -1,43 +1,27 @@
 import pytest
 from fastapi import status
 from datetime import datetime, timedelta, timezone
+from .mock_data import (
+    BASE_CUSTOMER, BASE_ADDRESS, BASE_ORDER,
+    get_test_addresses_with_zip_codes,
+    create_order_data
+)
 
 def create_test_order(client, customer_id, address_id, order_time):
-    order_data = {
-        "billing_address_id": address_id,
-        "shipping_address_id": address_id,
-        "total_amount": 100.0,
-        "status": "completed",
-        "order_date": order_time.isoformat()
-    }
+    order_data = create_order_data(address_id, address_id, order_time)
     response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
     print(f"Order creation response: {response.json()}")  # Debug log
     return response
 
 def test_get_orders_by_zip_code(client):
     # Create a customer
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # Updated to match pattern
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     customer_id = response.json()["id"]
     
     # Create addresses with different zip codes
     zip_codes = ["12345", "54321", "67890"]
     addresses = []
-    for zip_code in zip_codes:
-        address_data = {
-            "street_address": "123 Test St",
-            "apartment_suite": None,
-            "city": "Test City",
-            "state": "TS",
-            "zip_code": zip_code,
-            "is_billing_address": True,
-            "is_shipping_address": True
-        }
+    for address_data in get_test_addresses_with_zip_codes(zip_codes):
         response = client.post(f"/customers/{customer_id}/addresses/", json=address_data)
         addresses.append(response.json())
     
@@ -68,27 +52,12 @@ def test_get_orders_by_zip_code(client):
 
 def test_get_orders_by_time_of_day(client):
     # Create a customer
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Customer creation response: {response.status_code} - {response.json()}")  # Debug log
     customer_id = response.json()["id"]
     
     # Create an address
-    address_data = {
-        "street_address": "123 Test St",
-        "apartment_suite": None,
-        "city": "Test City",
-        "state": "TS",
-        "zip_code": "12345",
-        "is_billing_address": True,
-        "is_shipping_address": True
-    }
-    response = client.post(f"/customers/{customer_id}/addresses/", json=address_data)
+    response = client.post(f"/customers/{customer_id}/addresses/", json=BASE_ADDRESS)
     print(f"Address creation response: {response.status_code} - {response.json()}")  # Debug log
     address_id = response.json()["id"]
     
@@ -119,27 +88,12 @@ def test_get_orders_by_time_of_day(client):
 
 def test_get_orders_by_day_of_week(client):
     # Create a customer
-    customer_data = {
-        "email": "test@example.com",
-        "telephone": "+11234567890",  # 10 digits after +1
-        "first_name": "John",
-        "last_name": "Doe"
-    }
-    response = client.post("/customers/", json=customer_data)
+    response = client.post("/customers/", json=BASE_CUSTOMER)
     print(f"Customer creation response: {response.status_code} - {response.json()}")  # Debug log
     customer_id = response.json()["id"]
     
     # Create an address
-    address_data = {
-        "street_address": "123 Test St",
-        "apartment_suite": None,
-        "city": "Test City",
-        "state": "TS",
-        "zip_code": "12345",
-        "is_billing_address": True,
-        "is_shipping_address": True
-    }
-    response = client.post(f"/customers/{customer_id}/addresses/", json=address_data)
+    response = client.post(f"/customers/{customer_id}/addresses/", json=BASE_ADDRESS)
     print(f"Address creation response: {response.status_code} - {response.json()}")  # Debug log
     address_id = response.json()["id"]
     
