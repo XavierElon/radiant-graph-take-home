@@ -42,7 +42,7 @@ def test_get_orders_by_zip_code(client):
         addresses.append(response.json())
     
     # Create orders for each address
-    base_time = datetime.utcnow()
+    base_time = datetime.now(timezone.utc)
     for address in addresses:
         create_test_order(client, customer_id, address["id"], base_time)
     

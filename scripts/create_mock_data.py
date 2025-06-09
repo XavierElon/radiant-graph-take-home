@@ -1,6 +1,6 @@
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine
@@ -84,7 +84,7 @@ def create_mock_order(session: Session, customer: Customer, billing_address: Add
     days_ago = random.randint(0, 30)
     hours_ago = random.randint(0, 23)
     minutes_ago = random.randint(0, 59)
-    order_date = datetime.utcnow() - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
+    order_date = datetime.now(timezone.utc) - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
     
     order = Order(
         customer_id=customer.id,
