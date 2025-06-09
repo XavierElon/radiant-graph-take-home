@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional, List, Annotated
+from typing import Optional, List, Annotated, Dict
+from datetime import datetime
 
 class AddressBase(BaseModel):
     street_address: str
@@ -19,7 +20,7 @@ class Address(AddressBase):
     shipping_customer_id: Optional[int] = None
 
     class Config:
-        from_attributes = True
+        orm_mode = True
 
 class CustomerBase(BaseModel):
     first_name: str
@@ -30,10 +31,42 @@ class CustomerBase(BaseModel):
 class CustomerCreate(CustomerBase):
     pass
 
+class OrderBase(BaseModel):
+    total_amount: float
+    status: str
+    billing_address_id: int
+    shipping_address_id: int
+
+class OrderCreate(OrderBase):
+    pass
+
+class Order(OrderBase):
+    id: int
+    customer_id: int
+    order_date: datetime
+    billing_address: Address
+    shipping_address: Address
+
+    class Config:
+        orm_mode = True
+
 class Customer(CustomerBase):
     id: int
     billing_addresses: List[Address] = []
     shipping_addresses: List[Address] = []
+    orders: List[Order] = []
 
     class Config:
-        from_attributes = True 
+        orm_mode = True
+
+class ZipCodeAnalytics(BaseModel):
+    zip_code: str
+    order_count: int
+
+class TimeOfDayAnalytics(BaseModel):
+    hour: int
+    order_count: int
+
+class DayOfWeekAnalytics(BaseModel):
+    day_of_week: int  # 0 = Monday, 6 = Sunday
+    order_count: int 

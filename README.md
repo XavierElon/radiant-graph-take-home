@@ -289,17 +289,6 @@ code .
 # Cmd+Shift+P → "Python: Select Interpreter" → choose ./venv/bin/python
 ```
 
-### Using iTerm2 (Recommended Terminal)
-
-```bash
-# Install iTerm2
-brew install --cask iterm2
-
-# Create alias for easy activation
-echo 'alias activate_order_mgmt="cd /path/to/order-management-system && source venv/bin/activate"' >> ~/.zshrc
-source ~/.zshrc
-```
-
 ### Environment Variables for Different Stages
 
 ```bash
@@ -309,6 +298,12 @@ cp .env .env.development
 # Production
 cp .env .env.production
 # Edit .env.production with production database settings
+```
+
+### Load Mock Data
+
+```
+python scripts/create_mock_data.py
 ```
 
 ### Curl commands to test API:
@@ -372,4 +367,99 @@ Health check:
 
 ```
 curl http://localhost:8000/health
+```
+
+Create new order for a customer
+
+```
+curl -X POST "http://localhost:8000/orders/customers/1/orders/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "total_amount": 99.99,
+    "status": "completed",
+    "billing_address_id": 1,
+    "shipping_address_id": 2
+  }'
+```
+
+Get all orders
+
+```
+curl "http://localhost:8000/orders/customers/1/orders/"
+```
+
+Get orders with pagination (skip first 10, limit to 5 results)
+
+```
+curl "http://localhost:8000/orders/customers/1/orders/?skip=10&limit=5"
+```
+
+### Search orders by customer email or phone:
+
+Search by email
+
+```
+curl "http://localhost:8000/orders/search/?query=john.doe@example.com"
+```
+
+Search by phone
+
+```
+curl "http://localhost:8000/orders/search/?query=4155551234"
+```
+
+With pagination
+
+```
+curl "http://localhost:8000/orders/search/?query=john.doe@example.com&skip=0&limit=10"
+```
+
+Get a specific order by ID:
+
+```
+curl "http://localhost:8000/orders/1"
+```
+
+Get orders by zip code:
+
+# Get billing zip codes (descending order)
+
+```
+curl "http://localhost:8000/analytics/orders/zip-code/"
+```
+
+# Get shipping zip codes (ascending order)
+
+```
+curl "http://localhost:8000/analytics/orders/zip-code/?address_type=shipping&order_by=asc"
+```
+
+Get orders by time of day:
+
+# Get top 5 busiest hours
+
+```
+curl "http://localhost:8000/analytics/orders/time-of-day/?limit=5"
+```
+
+Get orders by day of week:
+
+# Get all days ordered by count
+
+```
+curl "http://localhost:8000/analytics/orders/day-of-week/"
+```
+
+## TESTING
+
+Create testing database
+
+```
+psql -h localhost -p 5433 -U radiant -d postgres -c "CREATE DATABASE radiant_graph_test;"
+```
+
+password: radiant123
+
+```
+DATABASE_URL=postgresql://radiant:radiant123@localhost:5433/radiant_graph_test pytest -v
 ```

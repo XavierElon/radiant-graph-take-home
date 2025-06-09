@@ -1,6 +1,7 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, Boolean, UniqueConstraint, DateTime, Float
 from sqlalchemy.orm import relationship
 from .database import Base
+from datetime import datetime
 
 class Customer(Base):
     __tablename__ = "customers"
@@ -16,6 +17,7 @@ class Customer(Base):
                                    foreign_keys="Address.billing_customer_id")
     shipping_addresses = relationship("Address", back_populates="shipping_customer",
                                     foreign_keys="Address.shipping_customer_id")
+    orders = relationship("Order", back_populates="customer")
 
     __table_args__ = (
         UniqueConstraint('email', name='uq_customer_email'),
@@ -44,4 +46,21 @@ class Address(Base):
     
     # Address type
     is_billing_address = Column(Boolean, default=False)
-    is_shipping_address = Column(Boolean, default=True) 
+    is_shipping_address = Column(Boolean, default=True)
+
+class Order(Base):
+    __tablename__ = "orders"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
+    order_date = Column(DateTime, default=datetime.utcnow, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    status = Column(String, nullable=False)  # e.g., "pending", "completed", "cancelled"
+    
+    # Relationships
+    customer = relationship("Customer", back_populates="orders")
+    billing_address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False)
+    shipping_address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False)
+    
+    billing_address = relationship("Address", foreign_keys=[billing_address_id])
+    shipping_address = relationship("Address", foreign_keys=[shipping_address_id]) 

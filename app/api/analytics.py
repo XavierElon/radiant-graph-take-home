@@ -1,0 +1,44 @@
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.orm import Session
+from typing import List
+from .. import crud, schemas
+from ..database import get_db
+
+router = APIRouter(
+    prefix="/analytics",
+    tags=["analytics"]
+)
+
+@router.get("/orders/zip-code/", response_model=List[schemas.ZipCodeAnalytics])
+def get_orders_by_zip_code(
+    address_type: str = Query("billing", description="Type of address to analyze (billing or shipping)"),
+    order_by: str = Query("desc", description="Sort order (asc or desc)"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get order count aggregated by zip code.
+    Can be filtered by billing or shipping address and sorted ascending or descending.
+    """
+    return crud.get_orders_by_zip_code(db=db, address_type=address_type, order_by=order_by)
+
+@router.get("/orders/time-of-day/", response_model=List[schemas.TimeOfDayAnalytics])
+def get_orders_by_time_of_day(
+    limit: int = Query(10, description="Number of hours to return"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get order count aggregated by hour of day.
+    Returns the top N busiest hours.
+    """
+    return crud.get_orders_by_time_of_day(db=db, limit=limit)
+
+@router.get("/orders/day-of-week/", response_model=List[schemas.DayOfWeekAnalytics])
+def get_orders_by_day_of_week(
+    limit: int = Query(7, description="Number of days to return"),
+    db: Session = Depends(get_db)
+):
+    """
+    Get order count aggregated by day of week.
+    Returns all days ordered by count (0 = Monday, 6 = Sunday).
+    """
+    return crud.get_orders_by_day_of_week(db=db, limit=limit) 
