@@ -56,6 +56,7 @@ class Order(Base):
     order_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     total_amount = Column(Float, nullable=False)
     status = Column(String, nullable=False)  # e.g., "pending", "completed", "cancelled"
+    order_type = Column(String, nullable=False)  # "in_store" or "online"
     
     # Relationships
     customer = relationship("Customer", back_populates="orders")

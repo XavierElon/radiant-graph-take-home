@@ -56,4 +56,13 @@ def read_order(order_id: int, db: Session = Depends(get_db)):
     db_order = crud.get_order(db, order_id=order_id)
     if db_order is None:
         raise HTTPException(status_code=404, detail="Order not found")
-    return db_order 
+    return db_order
+
+@router.get("/", response_model=List[schemas.Order])
+def read_orders(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db)
+):
+    """Get all orders with pagination."""
+    return crud.get_orders(db=db, skip=skip, limit=limit) 

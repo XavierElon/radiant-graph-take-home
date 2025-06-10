@@ -22,7 +22,8 @@ BASE_ADDRESS = {
 # Base order data
 BASE_ORDER = {
     "total_amount": 100.0,
-    "status": "completed"
+    "status": "completed",
+    "order_type": "in_store"
 }
 
 def get_test_customers(count=3):

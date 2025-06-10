@@ -36,6 +36,7 @@ class OrderBase(BaseModel):
     status: str
     billing_address_id: int
     shipping_address_id: int
+    order_type: str  # "in_store" or "online"
 
 class OrderCreate(OrderBase):
     pass
@@ -69,4 +70,14 @@ class TimeOfDayAnalytics(BaseModel):
 
 class DayOfWeekAnalytics(BaseModel):
     day_of_week: int  # 0 = Monday, 6 = Sunday
-    order_count: int 
+    order_count: int
+
+class TopInStoreCustomerAnalytics(BaseModel):
+    customer_id: int
+    first_name: str
+    last_name: str
+    email: str
+    in_store_order_count: int
+
+    class Config:
+        orm_mode = True 

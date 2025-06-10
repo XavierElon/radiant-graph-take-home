@@ -63,6 +63,7 @@ exclude = [".git", "__pycache__", "build", "dist"]
 [project.scripts]
 radiant-graph = "app.main:cli"
 dev = "app.main:dev"
+start = "app.main:main"
 test = "pytest:main"
 lint = "flake8.main:main"
 format = "black.main:main"

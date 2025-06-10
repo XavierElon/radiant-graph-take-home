@@ -45,10 +45,13 @@ def create_mock_customer(session: Session, index: int) -> Customer:
     first_names = ["John", "Jane", "Michael", "Emily", "David", "Sarah"]
     last_names = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia"]
     
+    # Use timestamp to ensure unique email and phone
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    
     customer = Customer(
         first_name=random.choice(first_names),
         last_name=random.choice(last_names),
-        email=f"customer{index}@example.com",
+        email=f"customer{index}_{timestamp}@example.com",
         telephone=f"+1{random.randint(2000000000, 9999999999)}"
     )
     session.add(customer)
@@ -86,11 +89,15 @@ def create_mock_order(session: Session, customer: Customer, billing_address: Add
     minutes_ago = random.randint(0, 59)
     order_date = datetime.now(timezone.utc) - timedelta(days=days_ago, hours=hours_ago, minutes=minutes_ago)
     
+    # Create more in-store orders than online orders (60/40 split)
+    order_type = "in_store" if random.random() < 0.6 else "online"
+    
     order = Order(
         customer_id=customer.id,
         order_date=order_date,
         total_amount=round(random.uniform(10.0, 1000.0), 2),
         status=random.choice(["completed", "pending", "cancelled"]),
+        order_type=order_type,
         billing_address_id=billing_address.id,
         shipping_address_id=shipping_address.id
     )
@@ -114,8 +121,8 @@ def create_mock_data():
             billing_address = create_mock_address(session, customer, is_billing=True)
             shipping_address = create_mock_address(session, customer, is_billing=False)
             
-            # Create 1-5 orders for each customer
-            num_orders = random.randint(1, 5)
+            # Create 2-5 orders for each customer
+            num_orders = random.randint(2, 5)
             for _ in range(num_orders):
                 create_mock_order(session, customer, billing_address, shipping_address)
             

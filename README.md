@@ -277,22 +277,6 @@ which python
 # Should show something like: /path/to/your/project/venv/bin/python
 ```
 
-## Development Tips
-
-### Using VS Code on macOS
-
-```bash
-# Install VS Code if you haven't
-brew install --cask visual-studio-code
-
-# Open project in VS Code
-code .
-
-# Install Python extension in VS Code
-# Then select the Python interpreter from your venv:
-# Cmd+Shift+P → "Python: Select Interpreter" → choose ./venv/bin/python
-```
-
 ### Environment Variables for Different Stages
 
 ```bash
@@ -308,6 +292,17 @@ cp .env .env.production
 
 ```
 python scripts/create_mock_data.py
+```
+
+### Commands
+
+```
+poetry run start - Starts the production server
+poetry run dev - Starts the development server with auto-reload
+poetry run test - Runs the test suite
+poetry run lint - Runs code linting
+poetry run format - Formats your code
+poetry run typecheck - Runs type checking
 ```
 
 ### Curl commands to test API:
@@ -454,7 +449,17 @@ Get orders by day of week:
 curl "http://localhost:8000/analytics/orders/day-of-week/"
 ```
 
-## TESTING
+Get top in-store customers:
+
+```
+curl "http://localhost:8000/analytics/customers/top-in-store/"
+```
+
+Get top in-store customers with custom limit (e.g., 10):
+
+```
+curl "http://localhost:8000/analytics/customers/top-in-store/?limit=10"
+```
 
 Create testing database
 

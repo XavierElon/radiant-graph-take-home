@@ -176,4 +176,33 @@ def get_orders_by_day_of_week(db: Session, limit: int = 7):
     nonzero.sort(key=lambda x: (-x["order_count"], x["day_of_week"]))
     zero.sort(key=lambda x: x["day_of_week"])
     result = (nonzero + zero)[:limit]
-    return result 
+    return result
+
+def get_top_in_store_customers(db: Session, limit: int = 5):
+    """
+    Get top customers by number of in-store orders
+    Returns the top N customers with the most in-store orders
+    """
+    return db.query(
+        models.Customer.id.label('customer_id'),
+        models.Customer.first_name,
+        models.Customer.last_name,
+        models.Customer.email,
+        func.count(models.Order.id).label('in_store_order_count')
+    ).join(
+        models.Order,
+        models.Order.customer_id == models.Customer.id
+    ).filter(
+        models.Order.order_type == 'in_store'
+    ).group_by(
+        models.Customer.id,
+        models.Customer.first_name,
+        models.Customer.last_name,
+        models.Customer.email
+    ).order_by(
+        func.count(models.Order.id).desc()
+    ).limit(limit).all()
+
+def get_orders(db: Session, skip: int = 0, limit: int = 100):
+    """Get all orders with pagination."""
+    return db.query(models.Order).offset(skip).limit(limit).all() 

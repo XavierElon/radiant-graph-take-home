@@ -7,6 +7,24 @@ from .mock_data import (
     create_order_data
 )
 
+@pytest.fixture
+def setup_customer_with_addresses(client, db):
+    """Create a test customer with addresses and return their IDs."""
+    # Create customer
+    customer_response = client.post("/customers/", json=BASE_CUSTOMER)
+    assert customer_response.status_code == status.HTTP_200_OK
+    customer_id = customer_response.json()["id"]
+    
+    # Create addresses
+    addresses = get_test_addresses_with_zip_codes(["12345", "54321"])
+    address_ids = []
+    for addr in addresses:
+        response = client.post(f"/customers/{customer_id}/addresses/", json=addr)
+        assert response.status_code == status.HTTP_200_OK
+        address_ids.append(response.json()["id"])
+    
+    return customer_id, address_ids
+
 def create_test_order(client, customer_id, address_id, order_time):
     order_data = create_order_data(address_id, address_id, order_time)
     response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
@@ -112,3 +130,45 @@ def test_get_orders_by_day_of_week(client):
     assert all("day_of_week" in item and "order_count" in item for item in data)
     assert all(0 <= item["day_of_week"] < 7 for item in data)
     assert all(item["order_count"] >= 0 for item in data)
+
+def test_get_top_in_store_customers(client, db, setup_customer_with_addresses):
+    """Test getting top customers by in-store orders."""
+    customer_id, address_ids = setup_customer_with_addresses
+    billing_id, shipping_id = address_ids
+    
+    # Create multiple in-store orders for the customer
+    for _ in range(3):
+        order_data = create_order_data(
+            billing_address_id=billing_id,
+            shipping_address_id=shipping_id,
+            order_time=datetime.now()
+        )
+        order_data["order_type"] = "in_store"
+        response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+        assert response.status_code == status.HTTP_200_OK
+    
+    # Create an online order
+    order_data = create_order_data(
+        billing_address_id=billing_id,
+        shipping_address_id=shipping_id,
+        order_time=datetime.now()
+    )
+    order_data["order_type"] = "online"
+    response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+    assert response.status_code == status.HTTP_200_OK
+    
+    # Test getting top in-store customers
+    response = client.get("/analytics/customers/top-in-store/")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) > 0
+    assert data[0]["customer_id"] == customer_id
+    assert data[0]["in_store_order_count"] == 3
+    
+    # Test with custom limit
+    response = client.get("/analytics/customers/top-in-store/?limit=1")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) == 1
+    assert data[0]["customer_id"] == customer_id
+    assert data[0]["in_store_order_count"] == 3
