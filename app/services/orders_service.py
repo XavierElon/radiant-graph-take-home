@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_, func, extract
 from .. import models, schemas
 from typing import List
+from .customers_service import get_customer, get_customer_addresses
 
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: int):
     db_order = models.Order(

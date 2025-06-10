@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
-from .. import crud, schemas
+from .. import schemas
 from ..database import get_db
+from ..services import orders_service
 
 router = APIRouter(
     prefix="/analytics",
@@ -27,7 +28,7 @@ def get_orders_by_zip_code(
     Returns:
         List[ZipCodeAnalytics]: List of zip code analytics with order counts
     """
-    return crud.get_orders_by_zip_code(db=db, address_type=address_type, order_by=order_by)
+    return orders_service.get_orders_by_zip_code(db=db, address_type=address_type, order_by=order_by)
 
 @router.get("/orders/time-of-day/", response_model=List[schemas.TimeOfDayAnalytics])
 def get_orders_by_time_of_day(
@@ -45,7 +46,7 @@ def get_orders_by_time_of_day(
     Returns:
         List[TimeOfDayAnalytics]: List of time of day analytics with order counts
     """
-    return crud.get_orders_by_time_of_day(db=db, limit=limit)
+    return orders_service.get_orders_by_time_of_day(db=db, limit=limit)
 
 @router.get("/orders/day-of-week/", response_model=List[schemas.DayOfWeekAnalytics])
 def get_orders_by_day_of_week(
@@ -63,7 +64,7 @@ def get_orders_by_day_of_week(
     Returns:
         List[DayOfWeekAnalytics]: List of day of week analytics with order counts
     """
-    return crud.get_orders_by_day_of_week(db=db, limit=limit)
+    return orders_service.get_orders_by_day_of_week(db=db, limit=limit)
 
 @router.get("/customers/top-in-store/", response_model=List[schemas.TopInStoreCustomerAnalytics])
 def get_top_in_store_customers(
@@ -81,4 +82,4 @@ def get_top_in_store_customers(
     Returns:
         List[TopInStoreCustomerAnalytics]: List of top in-store customer analytics
     """
-    return crud.get_top_in_store_customers(db=db, limit=limit) 
+    return orders_service.get_top_in_store_customers(db=db, limit=limit) 
