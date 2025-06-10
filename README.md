@@ -294,15 +294,10 @@ cp .env .env.production
 python scripts/create_mock_data.py
 ```
 
-### Commands
+### Testing
 
 ```
-poetry run start - Starts the production server
-poetry run dev - Starts the development server with auto-reload
-poetry run test - Runs the test suite
-poetry run lint - Runs code linting
-poetry run format - Formats your code
-poetry run typecheck - Runs type checking
+pytest tests/ -v
 ```
 
 ### Curl commands to test API:
