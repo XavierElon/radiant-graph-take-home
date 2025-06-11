@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
-from .. import crud, schemas
+from .. import schemas
 from ..database import get_db
+from ..services import customers_service
 
 router = APIRouter(
     prefix="/customers",
@@ -25,13 +26,13 @@ def create_customer(customer: schemas.CustomerCreate, db: Session = Depends(get_
     Raises:
         HTTPException: If email or telephone number is already registered
     """
-    db_customer = crud.get_customer_by_email(db, email=customer.email)
+    db_customer = customers_service.get_customer_by_email(db, email=customer.email)
     if db_customer:
         raise HTTPException(status_code=400, detail="Email already registered")
-    db_customer = crud.get_customer_by_telephone(db, telephone=customer.telephone)
+    db_customer = customers_service.get_customer_by_telephone(db, telephone=customer.telephone)
     if db_customer:
         raise HTTPException(status_code=400, detail="Telephone number already registered")
-    return crud.create_customer(db=db, customer=customer)
+    return customers_service.create_customer(db=db, customer=customer)
 
 @router.get("/", response_model=List[schemas.Customer])
 def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -46,7 +47,7 @@ def read_customers(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
     Returns:
         List[Customer]: List of customer objects
     """
-    customers = crud.get_customers(db, skip=skip, limit=limit)
+    customers = customers_service.get_customers(db, skip=skip, limit=limit)
     return customers
 
 @router.get("/{customer_id}", response_model=schemas.Customer)
@@ -64,7 +65,7 @@ def read_customer(customer_id: int, db: Session = Depends(get_db)):
     Raises:
         HTTPException: If customer is not found
     """
-    db_customer = crud.get_customer(db, customer_id=customer_id)
+    db_customer = customers_service.get_customer(db, customer_id=customer_id)
     if db_customer is None:
         raise HTTPException(status_code=404, detail="Customer not found")
     return db_customer
@@ -91,10 +92,10 @@ def create_address(
     Raises:
         HTTPException: If customer is not found
     """
-    db_customer = crud.get_customer(db, customer_id=customer_id)
+    db_customer = customers_service.get_customer(db, customer_id=customer_id)
     if db_customer is None:
         raise HTTPException(status_code=404, detail="Customer not found")
-    return crud.create_customer_address(db=db, address=address, customer_id=customer_id, is_billing=is_billing)
+    return customers_service.create_customer_address(db=db, address=address, customer_id=customer_id, is_billing=is_billing)
 
 @router.get("/{customer_id}/addresses/", response_model=List[schemas.Address])
 def read_customer_addresses(customer_id: int, db: Session = Depends(get_db)):
@@ -111,10 +112,10 @@ def read_customer_addresses(customer_id: int, db: Session = Depends(get_db)):
     Raises:
         HTTPException: If customer is not found
     """
-    db_customer = crud.get_customer(db, customer_id=customer_id)
+    db_customer = customers_service.get_customer(db, customer_id=customer_id)
     if db_customer is None:
         raise HTTPException(status_code=404, detail="Customer not found")
-    return crud.get_customer_addresses(db=db, customer_id=customer_id)
+    return customers_service.get_customer_addresses(db=db, customer_id=customer_id)
 
 @router.get("/search/{query}", response_model=List[schemas.Customer])
 def search_customers(query: str, db: Session = Depends(get_db)):
@@ -128,4 +129,4 @@ def search_customers(query: str, db: Session = Depends(get_db)):
     Returns:
         List[Customer]: List of matching customer objects
     """
-    return crud.search_customers(db=db, query=query) 
+    return customers_service.search_customers(db=db, query=query) 
