@@ -9,7 +9,7 @@ from sqlalchemy.orm import sessionmaker
 # Add the parent directory to the Python path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from app.models import Base, Customer, Address, Order
+from app.models import Base, Customer, Address, Order, OrderShippingAddress
 from app.database import get_db
 
 # Mock data
@@ -81,7 +81,7 @@ def create_mock_address(session: Session, customer: Customer, is_billing: bool =
     session.refresh(address)
     return address
 
-def create_mock_order(session: Session, customer: Customer, billing_address: Address, shipping_address: Address) -> Order:
+def create_mock_order(session: Session, customer: Customer, billing_address: Address, shipping_addresses: list[Address]) -> Order:
     """Create a mock order with random data."""
     # Generate a random date within the last 30 days
     days_ago = random.randint(0, 30)
@@ -98,10 +98,20 @@ def create_mock_order(session: Session, customer: Customer, billing_address: Add
         total_amount=round(random.uniform(10.0, 1000.0), 2),
         status=random.choice(["completed", "pending", "cancelled"]),
         order_type=order_type,
-        billing_address_id=billing_address.id,
-        shipping_address_id=shipping_address.id
+        billing_address_id=billing_address.id
     )
     session.add(order)
+    session.flush()  # Flush to get the order ID
+    
+    # Create shipping address entries
+    for idx, shipping_addr in enumerate(shipping_addresses, 1):
+        order_shipping = OrderShippingAddress(
+            order_id=order.id,
+            address_id=shipping_addr.id,
+            sequence=idx
+        )
+        session.add(order_shipping)
+    
     session.commit()
     session.refresh(order)
     return order
@@ -117,16 +127,25 @@ def create_mock_data():
             # Create customer
             customer = create_mock_customer(session, i)
             
-            # Create billing and shipping addresses
+            # Create billing address
             billing_address = create_mock_address(session, customer, is_billing=True)
-            shipping_address = create_mock_address(session, customer, is_billing=False)
+            
+            # Create 1-3 shipping addresses for each customer
+            num_shipping_addresses = random.randint(1, 3)
+            shipping_addresses = []
+            for _ in range(num_shipping_addresses):
+                shipping_addr = create_mock_address(session, customer, is_billing=False)
+                shipping_addresses.append(shipping_addr)
             
             # Create 2-5 orders for each customer
             num_orders = random.randint(2, 5)
             for _ in range(num_orders):
-                create_mock_order(session, customer, billing_address, shipping_address)
+                # For each order, randomly select 1-3 shipping addresses
+                num_order_shipping = random.randint(1, min(3, len(shipping_addresses)))
+                selected_shipping = random.sample(shipping_addresses, num_order_shipping)
+                create_mock_order(session, customer, billing_address, selected_shipping)
             
-            print(f"Created customer {i+1}/50 with {num_orders} orders")
+            print(f"Created customer {i+1}/50 with {num_orders} orders and {num_shipping_addresses} shipping addresses")
         
         print("Mock data creation completed successfully!")
         
