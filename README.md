@@ -1,5 +1,24 @@
 # radiant-graph-take-home
 
+## Built With
+
+This application is built using modern Python technologies and frameworks:
+
+- **FastAPI** Modern, fast web framework for building APIs
+- **Pydantic** Data validation and settings management
+- **SQLAlchemy** - SQL toolkit and ORM
+- **PostgreSQL** - Relational Database
+- **Uvicorn** - ASGI server implementation
+- **Python-dotenv** - Environment variable management
+- **Python-multipart** - Form data handling
+
+### Development Tools
+
+- **Pytest** - Testing framework
+- **Pytest-asyncio** - Async testing support
+- **HTTPX** - Modern HTTP client for testing
+- **Requests** - HTTP library for testing
+
 ## Structure of Application
 
 The application follows a layered architecture pattern to maintain separation of concerns and improve maintainability:
