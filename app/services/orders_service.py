@@ -3,26 +3,18 @@ from sqlalchemy import or_, func, extract
 from .. import models, schemas
 from typing import List
 from .customers_service import get_customer, get_customer_addresses
+from ..queries import orders_queries
 
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: int):
-    db_order = models.Order(
-        **order.dict(),
-        customer_id=customer_id
-    )
-    db.add(db_order)
-    db.commit()
-    db.refresh(db_order)
-    return db_order
+    return orders_queries.create_order_query(db, order.dict(), customer_id)
 
 def get_order(db: Session, order_id: int):
-    return db.query(models.Order).filter(models.Order.id == order_id).first()
+    return orders_queries.get_order_query(db, order_id)
 
 def get_customer_orders(db: Session, customer_id: int, skip: int = 0, limit: int = 100):
-    return db.query(models.Order).filter(
-        models.Order.customer_id == customer_id
-    ).offset(skip).limit(limit).all()
+    return orders_queries.get_customer_orders_query(db, customer_id, skip, limit)
 
-def search_orders(db: Session, query: str, skip: int = 0, limit: int = 100) -> List[models.Order]:
+def search_orders(db: Session, query: str, skip: int = 0, limit: int = 100) -> List[schemas.Order]:
     """Search orders by customer email or phone number."""
     # Remove any leading/trailing whitespace and ensure the query is not empty
     query = query.strip()
@@ -31,21 +23,7 @@ def search_orders(db: Session, query: str, skip: int = 0, limit: int = 100) -> L
 
     # Format the search pattern
     search_pattern = f"%{query}%"
-
-    # Query orders with customer information
-    return (
-        db.query(models.Order)
-        .join(models.Customer)
-        .filter(
-            or_(
-                models.Customer.email.ilike(search_pattern),
-                models.Customer.telephone.ilike(search_pattern)
-            )
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return orders_queries.search_orders_query(db, search_pattern, skip, limit)
 
 def get_orders_by_zip_code(db: Session, address_type: str = "billing", order_by: str = "desc"):
     """
@@ -58,34 +36,14 @@ def get_orders_by_zip_code(db: Session, address_type: str = "billing", order_by:
     else:
         address_id = models.Order.shipping_address_id
 
-    query = db.query(
-        models.Address.zip_code,
-        func.count(models.Order.id).label('order_count')
-    ).join(
-        models.Order,
-        address_id == models.Address.id
-    ).group_by(
-        models.Address.zip_code
-    )
-
-    if order_by.lower() == "asc":
-        query = query.order_by(func.count(models.Order.id).asc())
-    else:
-        query = query.order_by(func.count(models.Order.id).desc())
-
-    return query.all()
+    return orders_queries.get_orders_by_zip_code_query(db, address_id, order_by)
 
 def get_orders_by_time_of_day(db: Session, limit: int = 10):
     """
     Get order count aggregated by hour of day
     Returns the top N busiest hours
     """
-    hours_with_orders = db.query(
-        extract('hour', models.Order.order_date).label('hour'),
-        func.count(models.Order.id).label('order_count')
-    ).group_by(
-        extract('hour', models.Order.order_date)
-    ).all()
+    hours_with_orders = orders_queries.get_orders_by_time_of_day_query(db)
 
     all_hours = {hour: 0 for hour in range(24)}
     for hour, count in hours_with_orders:
@@ -107,12 +65,7 @@ def get_orders_by_day_of_week(db: Session, limit: int = 7):
     Get order count aggregated by day of week
     Returns all days ordered by count (0 = Monday, 6 = Sunday)
     """
-    days_with_orders = db.query(
-        extract('dow', models.Order.order_date).label('day_of_week'),
-        func.count(models.Order.id).label('order_count')
-    ).group_by(
-        extract('dow', models.Order.order_date)
-    ).all()
+    days_with_orders = orders_queries.get_orders_by_day_of_week_query(db)
 
     all_days = {day: 0 for day in range(7)}
     for day, count in days_with_orders:
@@ -130,26 +83,8 @@ def get_top_in_store_customers(db: Session, limit: int = 5):
     Get top customers by number of in-store orders
     Returns the top N customers with the most in-store orders
     """
-    return db.query(
-        models.Customer.id.label('customer_id'),
-        models.Customer.first_name,
-        models.Customer.last_name,
-        models.Customer.email,
-        func.count(models.Order.id).label('in_store_order_count')
-    ).join(
-        models.Order,
-        models.Order.customer_id == models.Customer.id
-    ).filter(
-        models.Order.order_type == 'in_store'
-    ).group_by(
-        models.Customer.id,
-        models.Customer.first_name,
-        models.Customer.last_name,
-        models.Customer.email
-    ).order_by(
-        func.count(models.Order.id).desc()
-    ).limit(limit).all()
+    return orders_queries.get_top_in_store_customers_query(db, limit)
 
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
     """Get all orders with pagination."""
-    return db.query(models.Order).offset(skip).limit(limit).all()
+    return orders_queries.get_orders_query(db, skip, limit)
