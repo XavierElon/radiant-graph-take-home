@@ -1,5 +1,7 @@
 # radiant-graph-take-home
 
+This application was built using
+
 ## Structure of Application
 
 The application follows a layered architecture pattern to maintain separation of concerns and improve maintainability:
@@ -147,6 +149,7 @@ If you need to clear the mock data for some reason you can use
 
 ```
 python scripts/clear_data.py
+```
 
 ### 6. Run the Application via Tilt
 
@@ -160,7 +163,7 @@ curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/instal
 
 ```
 
-Once tilt is installed run the command:
+Once tilt is installed run the command and it will automatically build your postgres and api container.:
 
 ```
 
