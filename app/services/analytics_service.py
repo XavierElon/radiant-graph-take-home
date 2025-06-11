@@ -1,7 +1,6 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, asc, extract
-from .. import models, schemas
-from datetime import datetime, timezone
+from .. import schemas
+from ..queries import analytics_queries
 
 def get_orders_by_zip_code(db: Session, address_type: str = "billing", order_by: str = "desc"):
     """
@@ -15,27 +14,7 @@ def get_orders_by_zip_code(db: Session, address_type: str = "billing", order_by:
     Returns:
         List of zip code analytics with order counts
     """
-    # Select the appropriate address field based on address_type
-    address_field = models.Order.billing_address_id if address_type == "billing" else models.Order.shipping_address_id
-    
-    # Base query to get zip codes and counts
-    query = db.query(
-        models.Address.zip_code,
-        func.count(models.Order.id).label('order_count')
-    ).join(
-        models.Order,
-        address_field == models.Address.id
-    ).group_by(
-        models.Address.zip_code
-    )
-    
-    # Apply sorting
-    if order_by.lower() == "asc":
-        query = query.order_by(asc('order_count'))
-    else:
-        query = query.order_by(desc('order_count'))
-    
-    results = query.all()
+    results = analytics_queries.get_orders_by_zip_code_query(db, address_type, order_by).all()
     
     return [
         schemas.ZipCodeAnalytics(
@@ -55,13 +34,7 @@ def get_orders_by_time_of_day(db: Session, limit: int = 10):
     Returns:
         List of time of day analytics with order counts
     """
-    # Get all hours with their counts
-    results = db.query(
-        extract('hour', models.Order.order_date).label('hour'),
-        func.count(models.Order.id).label('order_count')
-    ).group_by(
-        extract('hour', models.Order.order_date)
-    ).all()
+    results = analytics_queries.get_orders_by_time_of_day_query(db).all()
 
     # Create a dictionary of all hours with zero counts
     all_hours = {hour: 0 for hour in range(24)}
@@ -95,13 +68,7 @@ def get_orders_by_day_of_week(db: Session, limit: int = 7):
     Returns:
         List of day of week analytics with order counts
     """
-    # Get all days with their counts
-    results = db.query(
-        extract('dow', models.Order.order_date).label('day_of_week'),
-        func.count(models.Order.id).label('order_count')
-    ).group_by(
-        extract('dow', models.Order.order_date)
-    ).all()
+    results = analytics_queries.get_orders_by_day_of_week_query(db).all()
 
     # Create a dictionary of all days with zero counts
     all_days = {day: 0 for day in range(7)}
@@ -135,25 +102,7 @@ def get_top_in_store_customers(db: Session, limit: int = 5):
     Returns:
         List of top in-store customer analytics
     """
-    results = db.query(
-        models.Customer.id.label('customer_id'),
-        models.Customer.first_name,
-        models.Customer.last_name,
-        models.Customer.email,
-        func.count(models.Order.id).label('in_store_order_count')
-    ).join(
-        models.Order,
-        models.Order.customer_id == models.Customer.id
-    ).filter(
-        models.Order.order_type == 'in_store'
-    ).group_by(
-        models.Customer.id,
-        models.Customer.first_name,
-        models.Customer.last_name,
-        models.Customer.email
-    ).order_by(
-        desc('in_store_order_count')
-    ).limit(limit).all()
+    results = analytics_queries.get_top_in_store_customers_query(db, limit).all()
     
     return [
         schemas.TopInStoreCustomerAnalytics(
