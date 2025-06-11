@@ -4,7 +4,8 @@ from datetime import datetime, timedelta, timezone
 from .mock_data import (
     BASE_CUSTOMER, BASE_ADDRESS, BASE_ORDER,
     get_test_addresses_with_zip_codes,
-    create_order_data
+    create_order_data,
+    get_test_customers
 )
 
 @pytest.fixture
@@ -142,48 +143,59 @@ def test_get_orders_by_day_of_week(client):
     assert all(0 <= item["day_of_week"] < 7 for item in data)
     assert all(item["order_count"] >= 0 for item in data)
 
-def test_get_top_in_store_customers(client, db, setup_customer_with_addresses):
+def test_get_top_in_store_customers(client, db):
     """Test getting top customers by in-store orders."""
-    customer_id, address_ids = setup_customer_with_addresses
-    billing_id = address_ids[0]
-    shipping_ids = address_ids[1:]
+    # Create multiple customers with different numbers of orders
+    customers = get_test_customers(10)  # Create 10 test customers
+    customer_orders = {}  # Track number of orders per customer
     
-    # Create multiple in-store orders for the customer
-    for _ in range(3):
-        order_data = create_order_data(
-            billing_address_id=billing_id,
-            shipping_address_ids=shipping_ids,
-            order_time=datetime.now()
-        )
-        order_data["order_type"] = "in_store"
-        response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+    for i, customer in enumerate(customers):
+        # Create customer
+        response = client.post("/customers/", json=customer)
         assert response.status_code == status.HTTP_200_OK
-    
-    # Create an online order
-    order_data = create_order_data(
-        billing_address_id=billing_id,
-        shipping_address_ids=shipping_ids,
-        order_time=datetime.now()
-    )
-    order_data["order_type"] = "online"
-    response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
-    assert response.status_code == status.HTTP_200_OK
+        customer_id = response.json()["id"]
+        
+        # Create address for the customer
+        response = client.post(f"/customers/{customer_id}/addresses/", json=BASE_ADDRESS)
+        assert response.status_code == status.HTTP_200_OK
+        address_id = response.json()["id"]
+        
+        # Create different number of orders for each customer
+        # Customer 0: 1 order, Customer 1: 2 orders, etc.
+        num_orders = i + 1
+        customer_orders[customer_id] = num_orders
+        
+        for _ in range(num_orders):
+            order_data = create_order_data(
+                billing_address_id=address_id,
+                shipping_address_ids=[address_id],
+                order_time=datetime.now()
+            )
+            order_data["order_type"] = "in_store"
+            response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+            assert response.status_code == status.HTTP_200_OK
     
     # Test getting top in-store customers with default limit (5)
     response = client.get("/analytics/customers/top-in-store/")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
     assert len(data) <= 5  # Should return at most 5 customers
-    assert data[0]["customer_id"] == customer_id
-    assert data[0]["in_store_order_count"] == 3
+    
+    # Verify the order counts are correct and in descending order
+    for i in range(len(data) - 1):
+        assert data[i]["in_store_order_count"] >= data[i + 1]["in_store_order_count"]
+    
+    # Verify the top customer has the most orders
+    assert data[0]["in_store_order_count"] == 10  # Customer 9 should have 10 orders
     
     # Test with custom limit
-    response = client.get("/analytics/customers/top-in-store/?limit=1")
+    response = client.get("/analytics/customers/top-in-store/?limit=3")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert len(data) == 1
-    assert data[0]["customer_id"] == customer_id
-    assert data[0]["in_store_order_count"] == 3
+    assert len(data) == 3
+    assert data[0]["in_store_order_count"] == 10  # Top customer should have 10 orders
+    assert data[1]["in_store_order_count"] == 9   # Second customer should have 9 orders
+    assert data[2]["in_store_order_count"] == 8   # Third customer should have 8 orders
 
 def test_get_in_store_orders_by_time_of_day(client):
     # Create a customer
