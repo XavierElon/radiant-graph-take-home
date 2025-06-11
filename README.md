@@ -39,18 +39,18 @@ source venv/bin/activate
 
 ```bash
 # Create requirements.txt file
-cat > requirements.txt << 'EOF'
-fastapi==0.104.1
-uvicorn==0.24.0
-sqlalchemy==2.0.23
-psycopg2-binary==2.9.9
-python-dotenv==1.0.0
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
-pydantic==2.5.0
-email-validator==2.1.0
-EOF
+# cat > requirements.txt << 'EOF'
+# fastapi==0.104.1
+# uvicorn==0.24.0
+# sqlalchemy==2.0.23
+# psycopg2-binary==2.9.9
+# python-dotenv==1.0.0
+# pytest==7.4.3
+# pytest-asyncio==0.21.1
+# httpx==0.25.2
+# pydantic==2.5.0
+# email-validator==2.1.0
+# EOF
 
 # Install all dependencies
 pip install -r requirements.txt
@@ -101,43 +101,21 @@ The API will be available at `http://localhost:8000`
 
 ### Installing New Packages
 
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate
+Update requirements.txt
 
-# Install new package
-pip install package-name
-
-# Update requirements.txt
+```
 pip freeze > requirements.txt
 ```
 
-### Stopping Work
+vices start postgresql
 
-```bash
-# Stop the server with Ctrl+C, then deactivate virtual environment
-deactivate
-```
-
-## Database Setup Options
-
-### PostgreSQL
-
-**Install PostgreSQL:**
-
-```bash
-# Using Homebrew
-brew install postgresql
-
-# Start PostgreSQL service
-brew services start postgresql
-```
+````
 
 **Update .env file:**
 
 ```bash
 DATABASE_URL=postgresql://your_username:your_password@localhost/order_management
-```
+````
 
 ## Testing
 
@@ -148,17 +126,15 @@ source venv/bin/activate
 # Run tests
 pytest tests/ -v
 
-# Run tests with coverage
-pip install pytest-cov
-pytest tests/ --cov=app --cov-report=html
-
-# View coverage report
-open htmlcov/index.html
 ```
 
-## Example API Usage
+### Testing the API
 
-### Test the API
+It is recommended to use the Swagger UI at
+http://localhost:8000/docs
+or http://localhost:8000/redoc
+
+If you prefer the terminal/curl you can you following curl commands:
 
 ```bash
 # Test basic endpoint
