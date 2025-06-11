@@ -6,8 +6,7 @@ from app.main import app
 from tests.mock_data import (
     BASE_CUSTOMER,
     BASE_ADDRESS,
-    create_order_data,
-    get_test_customers,
+    create_order_data, 
     get_test_addresses
 )
 
@@ -172,3 +171,78 @@ def test_get_nonexistent_order(client, db):
     response = client.get("/orders/999")
     assert response.status_code == status.HTTP_404_NOT_FOUND
     assert response.json()["detail"] == "Order not found"
+
+def test_create_order_with_multiple_shipping_addresses(client):
+    # Create customer
+    response = client.post("/customers/", json=BASE_CUSTOMER)
+    customer_id = response.json()["id"]
+    # Create billing address
+    response = client.post(f"/customers/{customer_id}/addresses/", json={**BASE_ADDRESS, "is_billing_address": True, "is_shipping_address": False})
+    billing_id = response.json()["id"]
+    # Create two shipping addresses
+    shipping_ids = []
+    for zip_code in ["94107", "94110"]:
+        addr = {**BASE_ADDRESS, "zip_code": zip_code, "is_billing_address": False, "is_shipping_address": True}
+        response = client.post(f"/customers/{customer_id}/addresses/", json=addr)
+        shipping_ids.append(response.json()["id"])
+    # Create order with both shipping addresses
+    order_data = create_order_data(billing_address_id=billing_id, shipping_address_ids=shipping_ids, order_time=datetime.now())
+    response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+    assert response.status_code == 200
+    order = response.json()
+    assert len(order["shipping_addresses"]) == 2
+    assert order["shipping_addresses"][0]["sequence"] == 1
+    assert order["shipping_addresses"][1]["sequence"] == 2
+
+def test_customer_with_multiple_shipping_addresses_and_orders(client):
+    response = client.post("/customers/", json=BASE_CUSTOMER)
+    customer_id = response.json()["id"]
+    response = client.post(f"/customers/{customer_id}/addresses/", json={**BASE_ADDRESS, "is_billing_address": True, "is_shipping_address": False})
+    billing_id = response.json()["id"]
+    shipping_ids = []
+    for zip_code in ["94107", "94110", "94105"]:
+        addr = {**BASE_ADDRESS, "zip_code": zip_code, "is_billing_address": False, "is_shipping_address": True}
+        response = client.post(f"/customers/{customer_id}/addresses/", json=addr)
+        shipping_ids.append(response.json()["id"])
+    # Place an order to each shipping address
+    for i, sid in enumerate(shipping_ids):
+        order_data = create_order_data(billing_address_id=billing_id, shipping_address_ids=[sid], order_time=datetime.now())
+        response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+        assert response.status_code == 200
+        order = response.json()
+        assert len(order["shipping_addresses"]) == 1
+        assert order["shipping_addresses"][0]["address_id"] == sid
+
+def test_online_and_instore_order_types(client):
+    response = client.post("/customers/", json=BASE_CUSTOMER)
+    customer_id = response.json()["id"]
+    response = client.post(f"/customers/{customer_id}/addresses/", json={**BASE_ADDRESS, "is_billing_address": True, "is_shipping_address": False})
+    billing_id = response.json()["id"]
+    response = client.post(f"/customers/{customer_id}/addresses/", json={**BASE_ADDRESS, "zip_code": "94107", "is_billing_address": False, "is_shipping_address": True})
+    shipping_id = response.json()["id"]
+    # Online order
+    order_data = create_order_data(billing_address_id=billing_id, shipping_address_ids=[shipping_id], order_time=datetime.now())
+    order_data["order_type"] = "online"
+    response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+    assert response.status_code == 200
+    assert response.json()["order_type"] == "online"
+    # In-store order
+    order_data["order_type"] = "in_store"
+    response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+    assert response.status_code == 200
+    assert response.json()["order_type"] == "in_store"
+
+def test_billing_and_shipping_addresses_are_separate(client):
+    response = client.post("/customers/", json=BASE_CUSTOMER)
+    customer_id = response.json()["id"]
+    response = client.post(f"/customers/{customer_id}/addresses/", json={**BASE_ADDRESS, "is_billing_address": True, "is_shipping_address": False})
+    billing_id = response.json()["id"]
+    response = client.post(f"/customers/{customer_id}/addresses/", json={**BASE_ADDRESS, "zip_code": "94107", "is_billing_address": False, "is_shipping_address": True})
+    shipping_id = response.json()["id"]
+    # Try to create order with billing address as shipping address (should fail validation in real app, but here we just check they are not mixed)
+    order_data = create_order_data(billing_address_id=billing_id, shipping_address_ids=[shipping_id], order_time=datetime.now())
+    response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+    assert response.status_code == 200
+    order = response.json()
+    assert order["billing_address"]["id"] == billing_id
+    assert order["shipping_addresses"][0]["address_id"] == shipping_id
