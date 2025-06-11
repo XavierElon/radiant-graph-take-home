@@ -20,14 +20,16 @@ def create_order(
     if db_customer is None:
         raise HTTPException(status_code=404, detail="Customer not found")
     
-    # Verify billing and shipping addresses exist and belong to customer
+    # Verify billing address exists and belongs to customer
     billing_address = orders_service.get_customer_addresses(db, customer_id=customer_id)
-    shipping_address = orders_service.get_customer_addresses(db, customer_id=customer_id)
-    
     if not any(addr.id == order.billing_address_id for addr in billing_address):
         raise HTTPException(status_code=400, detail="Invalid billing address")
-    if not any(addr.id == order.shipping_address_id for addr in shipping_address):
-        raise HTTPException(status_code=400, detail="Invalid shipping address")
+    
+    # Verify all shipping addresses exist and belong to customer
+    shipping_addresses = orders_service.get_customer_addresses(db, customer_id=customer_id)
+    for shipping_addr in order.shipping_addresses:
+        if not any(addr.id == shipping_addr.address_id for addr in shipping_addresses):
+            raise HTTPException(status_code=400, detail=f"Invalid shipping address ID: {shipping_addr.address_id}")
     
     return orders_service.create_order(db=db, order=order, customer_id=customer_id)
 

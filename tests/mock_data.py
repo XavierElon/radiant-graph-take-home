@@ -68,11 +68,20 @@ def get_test_addresses_with_zip_codes(zip_codes):
         for zip_code in zip_codes
     ]
 
-def create_order_data(billing_address_id, shipping_address_id, order_time):
-    """Create order data with the given parameters."""
+def create_order_data(billing_address_id, shipping_address_ids, order_time):
+    """Create order data with the given parameters.
+    
+    Args:
+        billing_address_id: ID of the billing address
+        shipping_address_ids: List of shipping address IDs with their sequence
+        order_time: Time when the order was placed
+    """
     return {
         **BASE_ORDER,
         "billing_address_id": billing_address_id,
-        "shipping_address_id": shipping_address_id,
+        "shipping_addresses": [
+            {"address_id": addr_id, "sequence": idx}
+            for idx, addr_id in enumerate(shipping_address_ids, 1)
+        ],
         "order_date": order_time.isoformat()
     } 

@@ -26,7 +26,11 @@ def setup_customer_with_addresses(client, db):
     return customer_id, address_ids
 
 def create_test_order(client, customer_id, address_id, order_time):
-    order_data = create_order_data(address_id, address_id, order_time)
+    order_data = create_order_data(
+        billing_address_id=address_id,
+        shipping_address_ids=[address_id],
+        order_time=order_time
+    )
     response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
     print(f"Order creation response: {response.json()}")  # Debug log
     return response
@@ -134,13 +138,14 @@ def test_get_orders_by_day_of_week(client):
 def test_get_top_in_store_customers(client, db, setup_customer_with_addresses):
     """Test getting top customers by in-store orders."""
     customer_id, address_ids = setup_customer_with_addresses
-    billing_id, shipping_id = address_ids
+    billing_id = address_ids[0]
+    shipping_ids = address_ids[1:]
     
     # Create multiple in-store orders for the customer
     for _ in range(3):
         order_data = create_order_data(
             billing_address_id=billing_id,
-            shipping_address_id=shipping_id,
+            shipping_address_ids=shipping_ids,
             order_time=datetime.now()
         )
         order_data["order_type"] = "in_store"
@@ -150,7 +155,7 @@ def test_get_top_in_store_customers(client, db, setup_customer_with_addresses):
     # Create an online order
     order_data = create_order_data(
         billing_address_id=billing_id,
-        shipping_address_id=shipping_id,
+        shipping_address_ids=shipping_ids,
         order_time=datetime.now()
     )
     order_data["order_type"] = "online"

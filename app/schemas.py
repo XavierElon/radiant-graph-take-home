@@ -42,6 +42,24 @@ class CustomerCreate(CustomerBase):
     """Pydantic model for creating a new customer."""
     pass
 
+class OrderShippingAddressBase(BaseModel):
+    """Base Pydantic model for order shipping address data."""
+    address_id: int
+    sequence: int
+
+class OrderShippingAddressCreate(OrderShippingAddressBase):
+    """Pydantic model for creating a new order shipping address."""
+    pass
+
+class OrderShippingAddress(OrderShippingAddressBase):
+    """Pydantic model for order shipping address data including relationships."""
+    id: int
+    order_id: int
+    address: Address
+
+    class Config:
+        orm_mode = True
+
 class OrderBase(BaseModel):
     """Base Pydantic model for order data.
     
@@ -50,12 +68,11 @@ class OrderBase(BaseModel):
     total_amount: float  
     status: str  # Order status (e.g., "pending", "completed", "cancelled")
     billing_address_id: int  
-    shipping_address_id: int 
     order_type: str  # "in_store" or "online"
 
 class OrderCreate(OrderBase):
     """Pydantic model for creating a new order."""
-    pass
+    shipping_addresses: List[OrderShippingAddressCreate]
 
 class Order(OrderBase):
     """Pydantic model for order data including database fields and relationships."""
@@ -63,7 +80,7 @@ class Order(OrderBase):
     customer_id: int  # ID of customer who placed the order
     order_date: datetime  # When the order was placed
     billing_address: Address  # Billing address details
-    shipping_address: Address  # Shipping address details
+    shipping_addresses: List[OrderShippingAddress]  # List of shipping addresses
 
     class Config:
         orm_mode = True

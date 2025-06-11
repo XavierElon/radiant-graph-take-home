@@ -14,17 +14,26 @@ def get_orders_by_zip_code_query(db: Session, address_type: str = "billing", ord
     Returns:
         Query object for zip code analytics
     """
-    address_field = models.Order.billing_address_id if address_type == "billing" else models.Order.shipping_address_id
-    
     query = db.query(
         models.Address.zip_code,
         func.count(models.Order.id).label('order_count')
-    ).join(
-        models.Order,
-        address_field == models.Address.id
-    ).group_by(
-        models.Address.zip_code
     )
+    
+    if address_type == "billing":
+        query = query.join(
+            models.Order,
+            models.Order.billing_address_id == models.Address.id
+        )
+    else:  # shipping
+        query = query.join(
+            models.OrderShippingAddress,
+            models.OrderShippingAddress.address_id == models.Address.id
+        ).join(
+            models.Order,
+            models.Order.id == models.OrderShippingAddress.order_id
+        )
+    
+    query = query.group_by(models.Address.zip_code)
     
     if order_by.lower() == "asc":
         query = query.order_by(asc('order_count'))

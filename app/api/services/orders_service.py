@@ -6,7 +6,28 @@ from .customers_service import get_customer, get_customer_addresses
 from ..queries import orders_queries
 
 def create_order(db: Session, order: schemas.OrderCreate, customer_id: int):
-    return orders_queries.create_order_query(db, order.dict(), customer_id)
+    # Create the order
+    order_dict = order.dict()
+    shipping_addresses = order_dict.pop('shipping_addresses')
+    db_order = models.Order(
+        **order_dict,
+        customer_id=customer_id
+    )
+    db.add(db_order)
+    db.flush()  # Flush to get the order ID
+    
+    # Create shipping address entries
+    for shipping_addr in shipping_addresses:
+        db_shipping_addr = models.OrderShippingAddress(
+            order_id=db_order.id,
+            address_id=shipping_addr["address_id"],
+            sequence=shipping_addr["sequence"]
+        )
+        db.add(db_shipping_addr)
+    
+    db.commit()
+    db.refresh(db_order)
+    return db_order
 
 def get_order(db: Session, order_id: int):
     return orders_queries.get_order_query(db, order_id)
@@ -14,29 +35,11 @@ def get_order(db: Session, order_id: int):
 def get_customer_orders(db: Session, customer_id: int, skip: int = 0, limit: int = 100):
     return orders_queries.get_customer_orders_query(db, customer_id, skip, limit)
 
-def search_orders(db: Session, query: str, skip: int = 0, limit: int = 100) -> List[schemas.Order]:
-    """Search orders by customer email or phone number."""
-    # Remove any leading/trailing whitespace and ensure the query is not empty
-    query = query.strip()
-    if not query:
-        return []
+def search_orders(db: Session, query: str, skip: int = 0, limit: int = 100):
+    return orders_queries.search_orders_query(db, query, skip, limit)
 
-    # Format the search pattern
-    search_pattern = f"%{query}%"
-    return orders_queries.search_orders_query(db, search_pattern, skip, limit)
-
-def get_orders_by_zip_code(db: Session, address_type: str = "billing", order_by: str = "desc"):
-    """
-    Get order count aggregated by zip code
-    address_type: "billing" or "shipping"
-    order_by: "asc" or "desc"
-    """
-    if address_type == "billing":
-        address_id = models.Order.billing_address_id
-    else:
-        address_id = models.Order.shipping_address_id
-
-    return orders_queries.get_orders_by_zip_code_query(db, address_id, order_by)
+def get_orders(db: Session, skip: int = 0, limit: int = 100):
+    return orders_queries.get_orders_query(db, skip, limit)
 
 def get_orders_by_time_of_day(db: Session, limit: int = 10):
     """
@@ -84,7 +87,3 @@ def get_top_in_store_customers(db: Session, limit: int = 5):
     Returns the top N customers with the most in-store orders
     """
     return orders_queries.get_top_in_store_customers_query(db, limit)
-
-def get_orders(db: Session, skip: int = 0, limit: int = 100):
-    """Get all orders with pagination."""
-    return orders_queries.get_orders_query(db, skip, limit)

@@ -60,6 +60,23 @@ class Address(Base):
     is_billing_address = Column(Boolean, default=False)
     is_shipping_address = Column(Boolean, default=True)
 
+class OrderShippingAddress(Base):
+    """SQLAlchemy model representing shipping addresses for an order.
+    
+    This model allows multiple shipping addresses per order, which is useful
+    when items need to be delivered to different locations.
+    """
+    __tablename__ = "order_shipping_addresses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
+    address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False)
+    sequence = Column(Integer, nullable=False)  # Order of delivery
+    
+    # Relationships
+    order = relationship("Order", back_populates="shipping_addresses")
+    address = relationship("Address")
+
 class Order(Base):
     """SQLAlchemy model representing a customer order in the system.
     
@@ -78,7 +95,6 @@ class Order(Base):
     # Relationships
     customer = relationship("Customer", back_populates="orders")
     billing_address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False)
-    shipping_address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False)
+    shipping_addresses = relationship("OrderShippingAddress", back_populates="order")
     
-    billing_address = relationship("Address", foreign_keys=[billing_address_id])
-    shipping_address = relationship("Address", foreign_keys=[shipping_address_id]) 
+    billing_address = relationship("Address", foreign_keys=[billing_address_id]) 

@@ -37,11 +37,12 @@ def setup_customer_with_addresses(client, db):
 def test_create_order_success(client, db, setup_customer_with_addresses):
     """Test successful order creation."""
     customer_id, address_ids = setup_customer_with_addresses
-    billing_id, shipping_id = address_ids
+    billing_id = address_ids[0]
+    shipping_ids = address_ids[1:]  # Use remaining addresses as shipping addresses
     
     order_data = create_order_data(
         billing_address_id=billing_id,
-        shipping_address_id=shipping_id,
+        shipping_address_ids=shipping_ids,
         order_time=datetime.now()
     )
     
@@ -51,14 +52,15 @@ def test_create_order_success(client, db, setup_customer_with_addresses):
     data = response.json()
     assert data["customer_id"] == customer_id
     assert data["billing_address_id"] == billing_id
-    assert data["shipping_address_id"] == shipping_id
+    assert len(data["shipping_addresses"]) == len(shipping_ids)
+    assert all(addr["sequence"] == idx + 1 for idx, addr in enumerate(data["shipping_addresses"]))
     assert float(data["total_amount"]) == order_data["total_amount"]
 
 def test_create_order_invalid_customer(client, db):
     """Test order creation with invalid customer ID."""
     order_data = create_order_data(
         billing_address_id=1,
-        shipping_address_id=1,
+        shipping_address_ids=[1],
         order_time=datetime.now()
     )
     
@@ -72,7 +74,7 @@ def test_create_order_invalid_addresses(client, db, setup_customer_with_addresse
     
     order_data = create_order_data(
         billing_address_id=999,  # Invalid address ID
-        shipping_address_id=999,  # Invalid address ID
+        shipping_address_ids=[999],  # Invalid address ID
         order_time=datetime.now()
     )
     
@@ -83,13 +85,14 @@ def test_create_order_invalid_addresses(client, db, setup_customer_with_addresse
 def test_get_customer_orders(client, db, setup_customer_with_addresses):
     """Test retrieving customer orders."""
     customer_id, address_ids = setup_customer_with_addresses
-    billing_id, shipping_id = address_ids
+    billing_id = address_ids[0]
+    shipping_ids = address_ids[1:]
     
     # Create multiple orders
     for _ in range(3):
         order_data = create_order_data(
             billing_address_id=billing_id,
-            shipping_address_id=shipping_id,
+            shipping_address_ids=shipping_ids,
             order_time=datetime.now()
         )
         response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
@@ -102,16 +105,18 @@ def test_get_customer_orders(client, db, setup_customer_with_addresses):
     orders = response.json()
     assert len(orders) == 3
     assert all(order["customer_id"] == customer_id for order in orders)
+    assert all(len(order["shipping_addresses"]) == len(shipping_ids) for order in orders)
 
 def test_search_orders(client, db, setup_customer_with_addresses):
     """Test searching orders by email or phone."""
     customer_id, address_ids = setup_customer_with_addresses
-    billing_id, shipping_id = address_ids
+    billing_id = address_ids[0]
+    shipping_ids = address_ids[1:]
     
     # Create an order
     order_data = create_order_data(
         billing_address_id=billing_id,
-        shipping_address_id=shipping_id,
+        shipping_address_ids=shipping_ids,
         order_time=datetime.now()
     )
     response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
@@ -137,12 +142,13 @@ def test_search_orders(client, db, setup_customer_with_addresses):
 def test_get_order_by_id(client, db, setup_customer_with_addresses):
     """Test retrieving a specific order by ID."""
     customer_id, address_ids = setup_customer_with_addresses
-    billing_id, shipping_id = address_ids
+    billing_id = address_ids[0]
+    shipping_ids = address_ids[1:]
     
     # Create an order
     order_data = create_order_data(
         billing_address_id=billing_id,
-        shipping_address_id=shipping_id,
+        shipping_address_ids=shipping_ids,
         order_time=datetime.now()
     )
     create_response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
@@ -158,7 +164,8 @@ def test_get_order_by_id(client, db, setup_customer_with_addresses):
     assert data["id"] == order_id
     assert data["customer_id"] == customer_id
     assert data["billing_address_id"] == billing_id
-    assert data["shipping_address_id"] == shipping_id
+    assert len(data["shipping_addresses"]) == len(shipping_ids)
+    assert all(addr["sequence"] == idx + 1 for idx, addr in enumerate(data["shipping_addresses"]))
 
 def test_get_nonexistent_order(client, db):
     """Test retrieving a non-existent order."""
