@@ -1,4 +1,4 @@
-# radiant-graph-take-home
+# Radiant Graph Pier 2 Imports Take Home Assessment
 
 ## Built With
 
