@@ -26,12 +26,20 @@ app.include_router(customers_router)
 app.include_router(orders_router)
 app.include_router(analytics_router)
 
+def print_api_docs_urls():
+    print("\n=== API Documentation URLs ===")
+    print("Swagger UI: http://localhost:8000/docs")
+    print("ReDoc:      http://localhost:8000/redoc")
+    print("=============================\n")
+
 def main():
     """Production server entry point"""
+    print_api_docs_urls()
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
 def dev():
     """Development server entry point"""
+    print_api_docs_urls()
     uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
 
 @click.group()
