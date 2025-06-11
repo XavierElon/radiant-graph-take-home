@@ -3,12 +3,19 @@ from sqlalchemy.orm import relationship
 from .database import Base
 from datetime import datetime
 
+# File to define SQLAlchemy models for the database
+
 class Customer(Base):
+    """SQLAlchemy model representing a customer in the system.
+    
+    This model stores customer information including personal details and relationships
+    to their addresses and orders.
+    """
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True)
     first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)  
     email = Column(String, unique=True, index=True, nullable=False)
     telephone = Column(String, unique=True, index=True, nullable=False)
     
@@ -25,12 +32,17 @@ class Customer(Base):
     )
 
 class Address(Base):
+    """SQLAlchemy model representing a physical address in the system.
+    
+    This model can be used for both billing and shipping addresses, with relationships
+    to customers who use this address for either purpose.
+    """
     __tablename__ = "addresses"
 
     id = Column(Integer, primary_key=True, index=True)
-    street_address = Column(String, nullable=False)
+    street_address = Column(String, nullable=False) 
     apartment_suite = Column(String)
-    city = Column(String, nullable=False)
+    city = Column(String, nullable=False)  
     state = Column(String(2), nullable=False)  # 2-letter state code
     zip_code = Column(String(10), nullable=False)  # Format: 12345 or 12345-6789
     
@@ -44,18 +56,23 @@ class Address(Base):
     shipping_customer = relationship("Customer", back_populates="shipping_addresses",
                                    foreign_keys=[shipping_customer_id])
     
-    # Address type
+    # Address type flags
     is_billing_address = Column(Boolean, default=False)
     is_shipping_address = Column(Boolean, default=True)
 
 class Order(Base):
+    """SQLAlchemy model representing a customer order in the system.
+    
+    This model stores order information including the customer, addresses, amount,
+    and order status. It supports both in-store and online orders.
+    """
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     order_date = Column(DateTime, default=datetime.utcnow, nullable=False)
-    total_amount = Column(Float, nullable=False)
-    status = Column(String, nullable=False)  # e.g., "pending", "completed", "cancelled"
+    total_amount = Column(Float, nullable=False) 
+    status = Column(String, nullable=False)  # "pending", "completed", "cancelled"
     order_type = Column(String, nullable=False)  # "in_store" or "online"
     
     # Relationships

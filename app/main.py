@@ -3,7 +3,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from . import models
 from .database import engine
 from .api import customers_router, health_router, orders_router, analytics_router
-import sys
 import uvicorn
 import click
 
@@ -14,10 +13,10 @@ app = FastAPI(title="Radiant Graph API")
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"], 
 )
 
 # Include routers
