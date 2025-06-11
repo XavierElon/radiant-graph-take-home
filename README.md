@@ -1,5 +1,77 @@
 # radiant-graph-take-home
 
+## Structure of Application
+
+The application follows a layered architecture pattern to maintain separation of concerns and improve maintainability:
+
+```
+app/
+├── api/                    # API Layer
+│   ├── routes/            # FastAPI route handlers
+│   │   ├── customers.py   # Customer-related endpoints
+│   │   ├── orders.py      # Order-related endpoints
+│   │   └── analytics.py   # Analytics endpoints
+│   └── services/          # Business Logic Layer
+│       ├── customer.py    # Customer business logic
+│       ├── order.py       # Order business logic
+│       └── analytics.py   # Analytics business logic
+├── db/                    # Database Layer
+│   ├── queries/          # Database queries
+│   │   ├── customer.py   # Customer queries
+│   │   ├── order.py      # Order queries
+│   │   └── analytics.py  # Analytics queries
+│   └── database.py       # Database connection and setup
+├── models.py             # SQLAlchemy models
+└── schemas.py            # Pydantic schemas
+```
+
+### Layer Separation
+
+1. **API Layer (routes/)**
+
+   - Handles HTTP requests and responses
+   - Input validation using Pydantic schemas
+   - Route definitions and endpoint logic
+   - No business logic, only request/response handling
+
+2. **Service Layer (services/)**
+
+   - Contains business logic and rules
+   - Orchestrates operations across multiple queries
+   - Handles complex operations and validations
+   - Independent of HTTP/API concerns
+
+3. **Database Layer (db/queries/)**
+   - Handles all database operations
+   - Contains SQL queries and database-specific logic
+   - Manages database connections and transactions
+   - Isolated from business logic and API concerns
+
+### Benefits of This Structure
+
+1. **Separation of Concerns**
+
+   - Each layer has a specific responsibility
+   - Changes in one layer don't affect others
+   - Easier to maintain and test
+
+2. **Testability**
+
+   - Each layer can be tested independently
+   - Business logic can be tested without HTTP/DB
+   - Database operations can be tested in isolation
+
+3. **Maintainability**
+
+   - Clear organization makes code easier to navigate
+   - New features can be added without affecting existing code
+   - Dependencies flow in one direction (API → Services → DB)
+
+4. **Scalability**
+   - Each layer can be scaled independently
+   - Business logic can be reused across different interfaces
+   - Database operations can be optimized without affecting business logic
+
 # Order Management System - macOS Setup Guide
 
 ## Prerequisites
@@ -59,13 +131,22 @@ pip install -r requirements.txt
 ### 5. Set Up Environment Variables
 
 ```bash
-# Create environment file
-cat > .env << 'EOF'
-DATABASE_URL=postgresql://username:password@localhost/radiant_graph
-EOF
+# Copy environemnt variable from example env file
+cp .env .env.example
 ```
 
 username and password will come from the docker-compose.yml file
+
+### 7. Load mock data
+
+```
+python scripts/create_mock_data.py
+```
+
+If you need to clear the mock data for some reason you can use
+
+```
+python scripts/clear_data.py
 
 ### 6. Run the Application via Tilt
 
@@ -74,19 +155,25 @@ Tilt was used to make it very easy to build the application in Docker containers
 To install Tilt:
 
 ```
+
 curl -fsSL https://raw.githubusercontent.com/tilt-dev/tilt/master/scripts/install.sh | bash
-```
-
-Once tilt is install run the command:
 
 ```
+
+Once tilt is installed run the command:
+
+```
+
 tilt up
+
 ```
 
 If you need to take down your containers you can use the command:
 
 ```
+
 tilt down
+
 ```
 
 All of your containers will be visible in the Docker app or more conveniently at:
@@ -104,29 +191,30 @@ The API will be available at `http://localhost:8000`
 Update requirements.txt
 
 ```
+
 pip freeze > requirements.txt
+
 ```
 
-vices start postgresql
 
-````
+### Testing
 
-**Update .env file:**
+In order to run the tests you need to first create a test database
+Create testing database:
 
-```bash
-DATABASE_URL=postgresql://your_username:your_password@localhost/order_management
-````
+```
 
-## Testing
+scripts/.setup_test_db.sh
 
-```bash
-# Make sure virtual environment is activated
-source venv/bin/activate
+```
+You can then run the tests with:
 
-# Run tests
+```
+
 pytest tests/ -v
 
-```
+````
+
 
 ### Testing the API
 
@@ -162,123 +250,7 @@ curl -X POST "http://localhost:8000/api/customers/" \
 
 # Look up the customer
 curl "http://localhost:8000/api/customers/lookup?email=test@example.com"
-```
-
-## Troubleshooting
-
-### Common Issues and Solutions
-
-**1. `python3: command not found`**
-
-```bash
-# Check if Python is installed
-which python3
-
-# If not installed, use Homebrew
-brew install python
-```
-
-**2. `pip: command not found` after activating venv**
-
-```bash
-# Make sure venv is activated
-source venv/bin/activate
-
-# Check pip location
-which pip
-
-# If still issues, try
-python -m pip --version
-```
-
-**3. Permission denied errors**
-
-```bash
-# Don't use sudo with pip in virtual environments
-# If you see permission errors, make sure venv is activated
-source venv/bin/activate
-```
-
-**4. PostgreSQL connection issues**
-
-```bash
-# Check if PostgreSQL is running
-brew services list | grep postgresql
-
-# Start PostgreSQL if not running
-brew services start postgresql
-
-# Check connection
-psql -d order_management -c "SELECT version();"
-```
-
-**5. Port 8000 already in use**
-
-```bash
-# Find what's using the port
-lsof -i :8000
-
-# Kill the process if needed
-kill -9 PID_NUMBER
-
-# Or run on different port
-uvicorn app.main:app --host 0.0.0.0 --port 8001
-```
-
-### Virtual Environment Issues
-
-**Recreate virtual environment:**
-
-```bash
-# Deactivate current environment
-deactivate
-
-# Remove old environment
-rm -rf venv
-
-# Create new environment
-python3 -m venv venv
-
-# Activate and reinstall packages
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-**Check virtual environment status:**
-
-```bash
-# Check if venv is activated (should show venv path)
-which python
-
-# Should show something like: /path/to/your/project/venv/bin/python
-```
-
-### Environment Variables for Different Stages
-
-```bash
-# Development
-cp .env .env.development
-
-# Production
-cp .env .env.production
-# Edit .env.production with production database settings
-```
-
-### Load Mock Data
-
-```
-python scripts/create_mock_data.py
-```
-
-### Testing
-
-```
-pytest tests/ -v
-```
-
-### Curl commands to test API:
-
-If you don't want to use an API tester programmer like Postman or Insomnia you can use the following curl commands:
+````
 
 Create a new customer:
 
@@ -432,14 +404,91 @@ Get top in-store customers with custom limit (e.g., 10):
 curl "http://localhost:8000/analytics/customers/top-in-store/?limit=10"
 ```
 
-Create testing database
+## Troubleshooting
 
-```
-psql -h localhost -p 5433 -U radiant -d postgres -c "CREATE DATABASE radiant_graph_test;"
+### Common Issues and Solutions
+
+**1. `python3: command not found`**
+
+```bash
+# Check if Python is installed
+which python3
+
+# If not installed, use Homebrew
+brew install python
 ```
 
-password: radiant123
+**2. `pip: command not found` after activating venv**
 
+```bash
+# Make sure venv is activated
+source venv/bin/activate
+
+# Check pip location
+which pip
+
+# If still issues, try
+python -m pip --version
 ```
-DATABASE_URL=postgresql://radiant:radiant123@localhost:5433/radiant_graph_test pytest -v
+
+**3. Permission denied errors**
+
+```bash
+# Don't use sudo with pip in virtual environments
+# If you see permission errors, make sure venv is activated
+source venv/bin/activate
+```
+
+**4. PostgreSQL connection issues**
+
+```bash
+# Check if PostgreSQL is running
+brew services list | grep postgresql
+
+# Start PostgreSQL if not running
+brew services start postgresql
+
+# Check connection
+psql -d order_management -c "SELECT version();"
+```
+
+**5. Port 8000 already in use**
+
+```bash
+# Find what's using the port
+lsof -i :8000
+
+# Kill the process if needed
+kill -9 PID_NUMBER
+
+# Or run on different port
+uvicorn app.main:app --host 0.0.0.0 --port 8001
+```
+
+### Virtual Environment Issues
+
+**Recreate virtual environment:**
+
+```bash
+# Deactivate current environment
+deactivate
+
+# Remove old environment
+rm -rf venv
+
+# Create new environment
+python3 -m venv venv
+
+# Activate and reinstall packages
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+**Check virtual environment status:**
+
+```bash
+# Check if venv is activated (should show venv path)
+which python
+
+# Should show something like: /path/to/your/project/venv/bin/python
 ```
