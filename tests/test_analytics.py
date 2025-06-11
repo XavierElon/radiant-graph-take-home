@@ -71,6 +71,13 @@ def test_get_orders_by_zip_code(client):
     data = response.json()
     assert len(data) > 0
     assert all(data[i]["order_count"] <= data[i+1]["order_count"] for i in range(len(data)-1))
+    
+    # Test with order=desc
+    response = client.get("/analytics/orders/zip-code/?order=desc")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) > 0
+    assert all(data[i]["order_count"] >= data[i+1]["order_count"] for i in range(len(data)-1))
 
 def test_get_orders_by_time_of_day(client):
     # Create a customer
@@ -162,11 +169,11 @@ def test_get_top_in_store_customers(client, db, setup_customer_with_addresses):
     response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
     assert response.status_code == status.HTTP_200_OK
     
-    # Test getting top in-store customers
+    # Test getting top in-store customers with default limit (5)
     response = client.get("/analytics/customers/top-in-store/")
     assert response.status_code == status.HTTP_200_OK
     data = response.json()
-    assert len(data) > 0
+    assert len(data) <= 5  # Should return at most 5 customers
     assert data[0]["customer_id"] == customer_id
     assert data[0]["in_store_order_count"] == 3
     
@@ -177,3 +184,34 @@ def test_get_top_in_store_customers(client, db, setup_customer_with_addresses):
     assert len(data) == 1
     assert data[0]["customer_id"] == customer_id
     assert data[0]["in_store_order_count"] == 3
+
+def test_get_in_store_orders_by_time_of_day(client):
+    # Create a customer
+    response = client.post("/customers/", json=BASE_CUSTOMER)
+    customer_id = response.json()["id"]
+    
+    # Create an address
+    response = client.post(f"/customers/{customer_id}/addresses/", json=BASE_ADDRESS)
+    address_id = response.json()["id"]
+    
+    # Create in-store orders at different hours
+    base_time = datetime.now(timezone.utc)
+    for hour in range(24):
+        order_time = base_time.replace(hour=hour, minute=0, second=0, microsecond=0)
+        order_data = create_order_data(
+            billing_address_id=address_id,
+            shipping_address_ids=[address_id],
+            order_time=order_time
+        )
+        order_data["order_type"] = "in_store"
+        response = client.post(f"/orders/customers/{customer_id}/orders/", json=order_data)
+        assert response.status_code == status.HTTP_200_OK
+    
+    # Test getting in-store orders by time of day
+    response = client.get("/analytics/orders/time-of-day/?order_type=in_store")
+    assert response.status_code == status.HTTP_200_OK
+    data = response.json()
+    assert len(data) > 0
+    assert all("hour" in item and "order_count" in item for item in data)
+    assert all(0 <= item["hour"] < 24 for item in data)
+    assert all(item["order_count"] >= 0 for item in data)
