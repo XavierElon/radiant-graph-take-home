@@ -1,0 +1,7 @@
+[console_scripts]
+dev = app.main:dev
+format = black.main:main
+lint = flake8.main:main
+radiant-graph = app.main:cli
+test = pytest:main
+typecheck = mypy.main:main

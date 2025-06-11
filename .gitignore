@@ -37,3 +37,19 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db 
+.env
+venv/
+app/__pycache__/
+*.egg-info/
+tests/__pycache__/
+api/__pycache__/
+app/api/__pycache__/
+app/api/routes/__pycache__/
+app/api/routes/queries/__pycache__/
+app/api/routes/orders/__pycache__/
+app/api/routes/services/__pycache__/
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
