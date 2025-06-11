@@ -1,4 +1,23 @@
-# radiant-graph-take-home
+# Radiant Graph Pier 2 Imports Take Home Assessment
+
+## Built With
+
+This application is built using modern Python technologies and frameworks:
+
+- **FastAPI** Modern, fast web framework for building APIs
+- **Pydantic** Data validation and settings management
+- **SQLAlchemy** - SQL toolkit and ORM
+- **PostgreSQL** - Relational Database
+- **Uvicorn** - ASGI server implementation
+- **Python-dotenv** - Environment variable management
+- **Python-multipart** - Form data handling
+
+### Development Tools
+
+- **Pytest** - Testing framework
+- **Pytest-asyncio** - Async testing support
+- **HTTPX** - Modern HTTP client for testing
+- **Requests** - HTTP library for testing
 
 This application was built using
 
